@@ -45,5 +45,9 @@ type MutateFunc struct {
 
 // Mutate implements the Mutator interface by calling the Func.
 func (m *MutateFunc) Mutate(ctx context.Context, req admission.Request) admission.Response {
-	return m.Func(ctx, req)
+	if m.Func != nil {
+		return m.Func(ctx, req)
+	}
+
+	return m.MutatingWebhook.Mutate(ctx, req)
 }

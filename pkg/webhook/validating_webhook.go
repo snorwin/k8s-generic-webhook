@@ -60,16 +60,28 @@ type ValidateFuncs struct {
 }
 
 // ValidateCreate implements the Validator interface by calling the CreateFunc.
-func (m *ValidateFuncs) ValidateCreate(ctx context.Context, req admission.Request) admission.Response {
-	return m.CreateFunc(ctx, req)
+func (v *ValidateFuncs) ValidateCreate(ctx context.Context, req admission.Request) admission.Response {
+	if v.CreateFunc != nil {
+		return v.CreateFunc(ctx, req)
+	}
+
+	return v.ValidatingWebhook.ValidateCreate(ctx, req)
 }
 
 // ValidateUpdate implements the Validator interface by calling the UpdateFunc.
-func (m *ValidateFuncs) ValidateUpdate(ctx context.Context, req admission.Request) admission.Response {
-	return m.UpdateFunc(ctx, req)
+func (v *ValidateFuncs) ValidateUpdate(ctx context.Context, req admission.Request) admission.Response {
+	if v.UpdateFunc != nil {
+		return v.UpdateFunc(ctx, req)
+	}
+
+	return v.ValidatingWebhook.ValidateUpdate(ctx, req)
 }
 
 // ValidateDelete implements the Validator interface by calling the DeleteFunc.
-func (m *ValidateFuncs) ValidateDelete(ctx context.Context, req admission.Request) admission.Response {
-	return m.DeleteFunc(ctx, req)
+func (v *ValidateFuncs) ValidateDelete(ctx context.Context, req admission.Request) admission.Response {
+	if v.DeleteFunc != nil {
+		return v.DeleteFunc(ctx, req)
+	}
+
+	return v.ValidatingWebhook.ValidateDelete(ctx, req)
 }
