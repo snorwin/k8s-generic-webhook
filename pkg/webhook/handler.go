@@ -31,10 +31,10 @@ type handler struct {
 func (h *handler) Handle(ctx context.Context, req admission.Request) admission.Response {
 	// add metadata to context's logger
 	logger := log.FromContext(ctx).
-		WithValues("Webhook", req.Kind).
-		WithValues("uid", req.UID).
 		WithValues("name", req.Name).
-		WithValues("namespace", req.Namespace)
+		WithValues("namespace", req.Namespace).
+		WithValues("gvk", req.Kind.String()).
+		WithValues("uid", req.UID)
 	ctx = log.IntoContext(ctx, logger)
 
 	// decode object
