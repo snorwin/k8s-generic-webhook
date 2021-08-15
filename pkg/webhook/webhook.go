@@ -52,7 +52,7 @@ func (blder *Builder) Complete(i interface{}) error {
 			return err
 		}
 
-		if err := blder.registerValidatingWebhook(w); err != nil {
+		if err := blder.registerMutatingWebhook(w); err != nil {
 			return err
 		}
 	}
