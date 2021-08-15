@@ -26,33 +26,33 @@ func NewGenericWebhookManagedBy(mgr manager.Manager) *Builder {
 }
 
 // For takes a runtime.Object which should be a CR.
-func (bldr *Builder) For(apiType runtime.Object) *Builder {
-	bldr.apiType = apiType
-	return bldr
+func (blder *Builder) For(apiType runtime.Object) *Builder {
+	blder.apiType = apiType
+	return blder
 }
 
 // Complete builds the webhook.
 // If the given object implements the Mutator interface, a MutatingWebhook will be created.
 // If the given object implements the Validator interface, a ValidatingWebhook will be created.
-func (bldr *Builder) Complete(i interface{}) error {
+func (blder *Builder) Complete(i interface{}) error {
 	if validator, ok := i.(Validator); ok {
-		w, err := bldr.createAdmissionWebhook(&handler{Handler: validator, Object: bldr.apiType})
+		w, err := blder.createAdmissionWebhook(&handler{Handler: validator, Object: blder.apiType})
 		if err != nil {
 			return err
 		}
 
-		if err := bldr.registerValidatingWebhook(w); err != nil {
+		if err := blder.registerValidatingWebhook(w); err != nil {
 			return err
 		}
 	}
 
 	if mutator, ok := i.(Mutator); ok {
-		w, err := bldr.createAdmissionWebhook(&handler{Handler: mutator, Object: bldr.apiType})
+		w, err := blder.createAdmissionWebhook(&handler{Handler: mutator, Object: blder.apiType})
 		if err != nil {
 			return err
 		}
 
-		if err := bldr.registerValidatingWebhook(w); err != nil {
+		if err := blder.registerValidatingWebhook(w); err != nil {
 			return err
 		}
 	}
@@ -60,21 +60,21 @@ func (bldr *Builder) Complete(i interface{}) error {
 	return nil
 }
 
-func (bldr *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhook, error) {
+func (blder *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhook, error) {
 	w := &admission.Webhook{
 		Handler:         handler,
 		WithContextFunc: nil,
 	}
 
 	// inject scheme for decoder
-	if err := w.InjectScheme(bldr.mgr.GetScheme()); err != nil {
+	if err := w.InjectScheme(blder.mgr.GetScheme()); err != nil {
 		return nil, err
 	}
 
 	// inject client
 	if err := w.InjectFunc(func(i interface{}) error {
 		if injector, ok := i.(inject.Client); ok {
-			return injector.InjectClient(bldr.mgr.GetClient())
+			return injector.InjectClient(blder.mgr.GetClient())
 		}
 
 		return nil
