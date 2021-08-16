@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/conversion"
 )
 
 // Builder builds a Webhook.
@@ -21,8 +22,10 @@ type Builder struct {
 	apiType        runtime.Object
 	pathValidate   string
 	pathMutate     string
+	pathConvert    string
 	prefixValidate string
 	prefixMutate   string
+	prefixConvert  string
 }
 
 // NewGenericWebhookManagedBy returns a new webhook Builder that will be invoked by the provided manager.Manager.
@@ -31,6 +34,7 @@ func NewGenericWebhookManagedBy(mgr manager.Manager) *Builder {
 		mgr:            mgr,
 		prefixMutate:   "/mutate-",
 		prefixValidate: "/validate-",
+		prefixConvert:  "/convert-",
 	}
 }
 
@@ -50,6 +54,11 @@ func (blder *Builder) WithValidatePath(path string) *Builder {
 	return blder
 }
 
+func (blder *Builder) WithConvertPath(path string) *Builder {
+	blder.pathConvert = path
+	return blder
+}
+
 func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
@@ -57,6 +66,11 @@ func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
 
 func (blder *Builder) WithValidatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
+	return blder
+}
+
+func (blder *Builder) WithConvertPrefix(prefix string) *Builder {
+	blder.prefixConvert = prefix
 	return blder
 }
 
@@ -74,6 +88,11 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("validating path %q must start with '/'", blder.pathValidate)
 	} else if !strings.HasPrefix(blder.prefixValidate, "/") {
 		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
+	}
+	if blder.pathConvert != "" && !strings.HasPrefix(blder.pathConvert, "/") {
+		return fmt.Errorf("conversion path %q must start with '/'", blder.pathConvert)
+	} else if !strings.HasPrefix(blder.prefixConvert, "/") {
+		return fmt.Errorf("conversion prefix %q must start with '/'", blder.prefixConvert)
 	}
 
 	if validator, ok := i.(Validator); ok {
@@ -94,6 +113,17 @@ func (blder *Builder) Complete(i interface{}) error {
 		}
 
 		if err := blder.registerMutatingWebhook(w); err != nil {
+			return err
+		}
+	}
+
+	if converter, ok := i.(Converter); ok {
+		w, err := blder.createConversionWebhook(&handler{Handler: converter, Object: blder.apiType})
+		if err != nil {
+			return err
+		}
+
+		if err := blder.registerConversionWebhook(w); err != nil {
 			return err
 		}
 	}
@@ -147,6 +177,31 @@ func (blder *Builder) registerMutatingWebhook(w *admission.Webhook) error {
 	}
 
 	path := generatePath(blder.pathMutate, blder.prefixMutate, gvk)
+	if !isAlreadyHandled(blder.mgr, path) {
+		blder.mgr.GetWebhookServer().Register(path, w)
+	}
+
+	return nil
+}
+
+func (blder *Builder) createConversionWebhook(handler Handler) (*conversion.Webhook, error) {
+	w := &conversion.Webhook{}
+
+	// inject scheme for decoder
+	if err := w.InjectScheme(blder.mgr.GetScheme()); err != nil {
+		return nil, err
+	}
+
+	return w, nil
+}
+
+func (blder *Builder) registerConversionWebhook(w *conversion.Webhook) error {
+	gvk, err := apiutil.GVKForObject(blder.apiType, blder.mgr.GetScheme())
+	if err != nil {
+		return err
+	}
+
+	path := generatePath(blder.pathConvert, blder.prefixConvert, gvk)
 	if !isAlreadyHandled(blder.mgr, path) {
 		blder.mgr.GetWebhookServer().Register(path, w)
 	}
