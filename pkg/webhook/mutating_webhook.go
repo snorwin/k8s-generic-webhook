@@ -3,7 +3,6 @@ package webhook
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -13,27 +12,17 @@ type Mutator interface {
 	Mutate(context.Context, admission.Request) admission.Response
 }
 
+// ensure MutatingWebhook implements Mutator
+var _ Mutator = &MutatingWebhook{}
+
 // MutatingWebhook is a generic mutating admission webhook.
 type MutatingWebhook struct {
-	Client  client.Client
-	Decoder *admission.Decoder
+	baseHandler
 }
 
 // Mutate implements the Mutator interface.
 func (m *MutatingWebhook) Mutate(_ context.Context, _ admission.Request) admission.Response {
 	return admission.Allowed("")
-}
-
-// InjectDecoder implements the admission.DecoderInjector interface.
-func (m *MutatingWebhook) InjectDecoder(decoder *admission.Decoder) error {
-	m.Decoder = decoder
-	return nil
-}
-
-// InjectClient implements the inject.Client interface.
-func (m *MutatingWebhook) InjectClient(client client.Client) error {
-	m.Client = client
-	return nil
 }
 
 // MutateFunc is a functional interface for a generic mutating admission webhook.

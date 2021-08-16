@@ -130,6 +130,9 @@ var _ = Describe("Handler", func() {
 
 			result = h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
+					Object: runtime.RawExtension{
+						Raw: raw,
+					},
 					OldObject: runtime.RawExtension{
 						Raw: raw,
 					},

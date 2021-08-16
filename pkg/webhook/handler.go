@@ -70,8 +70,11 @@ func (h *handler) Handle(ctx context.Context, req admission.Request) admission.R
 	}
 
 	// invoke mutator
-	if mutator, ok := h.Handler.(Mutator); ok {
-		return mutator.Mutate(ctx, req)
+	if req.Object.Object != nil {
+		if mutator, ok := h.Handler.(Mutator); ok {
+			// invoke mutator
+			return mutator.Mutate(ctx, req)
+		}
 	}
 
 	return admission.Denied("")

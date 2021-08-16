@@ -3,7 +3,6 @@ package webhook
 import (
 	"context"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -17,10 +16,12 @@ type Validator interface {
 	ValidateDelete(context.Context, admission.Request) admission.Response
 }
 
+// ensure ValidatingWebhook implements Validator
+var _ Validator = &ValidatingWebhook{}
+
 // ValidatingWebhook is a generic validating admission webhook.
 type ValidatingWebhook struct {
-	Client  client.Client
-	Decoder *admission.Decoder
+	baseHandler
 }
 
 // ValidateCreate implements the Validator interface.
@@ -36,18 +37,6 @@ func (v *ValidatingWebhook) ValidateUpdate(_ context.Context, _ admission.Reques
 // ValidateDelete implements the Validator interface.
 func (v *ValidatingWebhook) ValidateDelete(_ context.Context, _ admission.Request) admission.Response {
 	return admission.Allowed("")
-}
-
-// InjectDecoder implements the admission.DecoderInjector interface.
-func (v *ValidatingWebhook) InjectDecoder(decoder *admission.Decoder) error {
-	v.Decoder = decoder
-	return nil
-}
-
-// InjectClient implements the inject.Client interface.
-func (v *ValidatingWebhook) InjectClient(client client.Client) error {
-	v.Client = client
-	return nil
 }
 
 // ValidateFuncs is a functional interface for a generic validating admission webhook.

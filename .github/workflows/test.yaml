@@ -19,11 +19,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Generate Mocks
-        run: go get github.com/golang/mock/mockgen@v1.4.4 && mockgen -destination pkg/mocks/manager/mock.go sigs.k8s.io/controller-runtime/pkg/manager Manager
-
       - name: Test
-        run: go test ./... -coverprofile cover.out -timeout 30m
+        run: make test
         env:
           CGO_ENABLED: 0
           GO111MODULE: on
