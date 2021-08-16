@@ -114,5 +114,29 @@ var _ = Describe("Webhook", func() {
 				Complete(&webhook.ValidatingWebhook{})
 			Ω(err).Should(HaveOccurred())
 		})
+		It("should fail the mutating prefix is not valid", func() {
+			err := webhook.NewGenericWebhookManagedBy(mgr).
+				WithMutatePrefix("foo").
+				Complete(&webhook.MutatingWebhook{})
+			Ω(err).Should(HaveOccurred())
+		})
+		It("should fail the validating prefix is not valid", func() {
+			err := webhook.NewGenericWebhookManagedBy(mgr).
+				WithValidatePrefix("foo").
+				Complete(&webhook.MutatingWebhook{})
+			Ω(err).Should(HaveOccurred())
+		})
+		It("should fail the mutating path is set and not valid", func() {
+			err := webhook.NewGenericWebhookManagedBy(mgr).
+				WithMutatePath("foo").
+				Complete(&webhook.MutatingWebhook{})
+			Ω(err).Should(HaveOccurred())
+		})
+		It("should fail the validating path is set and not valid", func() {
+			err := webhook.NewGenericWebhookManagedBy(mgr).
+				WithValidatePath("foo").
+				Complete(&webhook.MutatingWebhook{})
+			Ω(err).Should(HaveOccurred())
+		})
 	})
 })

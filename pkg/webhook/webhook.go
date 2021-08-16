@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,13 +17,21 @@ import (
 
 // Builder builds a Webhook.
 type Builder struct {
-	mgr     manager.Manager
-	apiType runtime.Object
+	mgr            manager.Manager
+	apiType        runtime.Object
+	pathValidate   string
+	pathMutate     string
+	prefixValidate string
+	prefixMutate   string
 }
 
 // NewGenericWebhookManagedBy returns a new webhook Builder that will be invoked by the provided manager.Manager.
 func NewGenericWebhookManagedBy(mgr manager.Manager) *Builder {
-	return &Builder{mgr: mgr}
+	return &Builder{
+		mgr:            mgr,
+		prefixMutate:   "/mutate-",
+		prefixValidate: "/validate-",
+	}
 }
 
 // For takes a runtime.Object which should be a CR.
@@ -31,10 +40,42 @@ func (blder *Builder) For(apiType runtime.Object) *Builder {
 	return blder
 }
 
+func (blder *Builder) WithMutatePath(path string) *Builder {
+	blder.pathMutate = path
+	return blder
+}
+
+func (blder *Builder) WithValidatePath(path string) *Builder {
+	blder.pathValidate = path
+	return blder
+}
+
+func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
+	blder.prefixMutate = prefix
+	return blder
+}
+
+func (blder *Builder) WithValidatePrefix(prefix string) *Builder {
+	blder.prefixMutate = prefix
+	return blder
+}
+
 // Complete builds the webhook.
 // If the given object implements the Mutator interface, a MutatingWebhook will be created.
 // If the given object implements the Validator interface, a ValidatingWebhook will be created.
 func (blder *Builder) Complete(i interface{}) error {
+
+	if blder.pathMutate != "" && !strings.HasPrefix(blder.pathMutate, "/") {
+		return fmt.Errorf("mutating path %q must start with '/'", blder.pathMutate)
+	} else if !strings.HasPrefix(blder.prefixMutate, "/") {
+		return fmt.Errorf("mutating prefix %q must start with '/'", blder.prefixMutate)
+	}
+	if blder.pathValidate != "" && !strings.HasPrefix(blder.pathValidate, "/") {
+		return fmt.Errorf("validating path %q must start with '/'", blder.pathValidate)
+	} else if !strings.HasPrefix(blder.prefixValidate, "/") {
+		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
+	}
+
 	if validator, ok := i.(Validator); ok {
 		w, err := blder.createAdmissionWebhook(&handler{Handler: validator, Object: blder.apiType})
 		if err != nil {
@@ -91,7 +132,7 @@ func (blder *Builder) registerValidatingWebhook(w *admission.Webhook) error {
 		return err
 	}
 
-	path := generatePath("/validate-", gvk)
+	path := generatePath(blder.pathValidate, blder.prefixValidate, gvk)
 	if !isAlreadyHandled(blder.mgr, path) {
 		blder.mgr.GetWebhookServer().Register(path, w)
 	}
@@ -105,7 +146,7 @@ func (blder *Builder) registerMutatingWebhook(w *admission.Webhook) error {
 		return err
 	}
 
-	path := generatePath("/mutate-", gvk)
+	path := generatePath(blder.pathMutate, blder.prefixMutate, gvk)
 	if !isAlreadyHandled(blder.mgr, path) {
 		blder.mgr.GetWebhookServer().Register(path, w)
 	}
@@ -126,7 +167,10 @@ func isAlreadyHandled(mgr ctrl.Manager, path string) bool {
 	return false
 }
 
-func generatePath(prefix string, gvk schema.GroupVersionKind) string {
+func generatePath(override string, prefix string, gvk schema.GroupVersionKind) string {
+	if override != "" {
+		return override
+	}
 	return prefix + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
 		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }
