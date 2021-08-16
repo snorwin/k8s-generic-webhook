@@ -91,7 +91,7 @@ func (blder *Builder) Complete(i interface{}) error {
 	}
 	if blder.pathConvert != "" && !strings.HasPrefix(blder.pathConvert, "/") {
 		return fmt.Errorf("conversion path %q must start with '/'", blder.pathConvert)
-	} else if !strings.HasPrefix(blder.prefixValidate, "/") {
+	} else if !strings.HasPrefix(blder.prefixConvert, "/") {
 		return fmt.Errorf("conversion prefix %q must start with '/'", blder.prefixConvert)
 	}
 
