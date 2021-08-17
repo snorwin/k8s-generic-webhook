@@ -58,15 +58,18 @@ if err = (&pod.Webhook{}).SetupWebhookWithManager(mgr); err != nil {
 ```
 
 ## Examples
-### Mutating admission webhook using `MutateObjectByFunc`
+### Mutating admission webhook using `MutateObjectFunc`
+The `MutateObjectFunc` creates the JSON patches for admission response automatically in order to simplify the mutation of `runtime.Object`. 
+The example shows how the functional `MutateObjectFunc` interface can be used to mutate a `Pod`.
 ```go
 package pod
 
 import (
 	"context"
-	
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -75,24 +78,28 @@ import (
 )
 
 type Webhook struct {
-	webhook.MutatingWebhook
+	mutator *webhook.MutateObjectFunc
 }
 
 func (w *Webhook) SetupWebhookWithManager(mgr manager.Manager) error {
+	w.mutator = &webhook.MutateObjectFunc{
+		Func: func(ctx context.Context, request admission.Request, object runtime.Object) error {
+			return w.Mutate(ctx, request, object)
+		},
+	}
+
 	return webhook.NewGenericWebhookManagedBy(mgr).
 		For(&corev1.Pod{}).
-		Complete(w)
+		Complete(w.mutator)
 }
 
-func (w *Webhook) Mutate(ctx context.Context, req admission.Request) admission.Response {
-	return webhook.MutateObjectByFunc(ctx, req, func(ctx context.Context, request admission.Request, object runtime.Object) error {
-		_ = log.FromContext(ctx)
+func (w *Webhook) Mutate(ctx context.Context, request admission.Request, object runtime.Object) error {
+	_ = log.FromContext(ctx)
 
-		pod := object.(*corev1.Pod)
-		// TODO add your programmatic mutation logic here
-		object = pod
-		
-		return nil
-	})
+	pod := object.(*corev1.Pod)
+	// TODO add your programmatic mutation logic here
+	object = pod
+
+	return nil
 }
 ```
