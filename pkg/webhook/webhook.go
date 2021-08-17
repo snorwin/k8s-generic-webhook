@@ -40,21 +40,25 @@ func (blder *Builder) For(apiType runtime.Object) *Builder {
 	return blder
 }
 
+// WithMutatePath overrides the mutate path of the webhook
 func (blder *Builder) WithMutatePath(path string) *Builder {
 	blder.pathMutate = path
 	return blder
 }
 
+// WithValidatePath overrides the validate path of the webhook
 func (blder *Builder) WithValidatePath(path string) *Builder {
 	blder.pathValidate = path
 	return blder
 }
 
+// WithMutatePrefix sets a custom prefix for the mutate path of the webhook, default is '/mutate-'
 func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
 }
 
+// WithValidatePrefix sets a custom prefix for the mutate path of the webhook, default is '/validate-'
 func (blder *Builder) WithValidatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
@@ -76,7 +80,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
 	}
 
-	if validator := blder.asValidator(i); validator != nil {
+	if validator, ok := i.(Validator); ok {
 		w, err := blder.createAdmissionWebhook(&handler{Handler: validator, Object: blder.apiType})
 		if err != nil {
 			return err
@@ -87,7 +91,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		}
 	}
 
-	if mutator := blder.asMutator(i); mutator != nil {
+	if mutator, ok := i.(Mutator); ok {
 		w, err := blder.createAdmissionWebhook(&handler{Handler: mutator, Object: blder.apiType})
 		if err != nil {
 			return err
@@ -96,28 +100,6 @@ func (blder *Builder) Complete(i interface{}) error {
 		if err := blder.registerMutatingWebhook(w); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (blder *Builder) asValidator(i interface{}) Validator {
-	if validator, ok := i.(Validator); ok {
-		return validator
-	}
-	if validator, ok := i.(SimpleValidator); ok {
-		return wrapAsValidator(validator)
-	}
-
-	return nil
-}
-
-func (blder *Builder) asMutator(i interface{}) Mutator {
-	if mutator, ok := i.(Mutator); ok {
-		return mutator
-	}
-	if mutator, ok := i.(SimpleMutator); ok {
-		return wrapAsMutator(mutator)
 	}
 
 	return nil
@@ -193,6 +175,7 @@ func generatePath(override string, prefix string, gvk schema.GroupVersionKind) s
 	if override != "" {
 		return override
 	}
+
 	return prefix + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
 		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }

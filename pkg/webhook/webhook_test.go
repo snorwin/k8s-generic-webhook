@@ -54,22 +54,10 @@ var _ = Describe("Webhook", func() {
 				Complete(&webhook.MutatingWebhook{})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
-		It("should build simple mutating webhook", func() {
-			err := webhook.NewGenericWebhookManagedBy(mgr).
-				For(&corev1.Pod{}).
-				Complete(&webhook.SimpleMutatingWebhook{})
-			Ω(err).ShouldNot(HaveOccurred())
-		})
 		It("should build validating webhook", func() {
 			err := webhook.NewGenericWebhookManagedBy(mgr).
 				For(&corev1.Pod{}).
 				Complete(&webhook.ValidatingWebhook{})
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-		It("should build simple validating webhook", func() {
-			err := webhook.NewGenericWebhookManagedBy(mgr).
-				For(&corev1.Pod{}).
-				Complete(&webhook.SimpleValidatingWebhook{})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 		It("should build multiple validating webhook", func() {

@@ -33,6 +33,38 @@ var _ = Describe("Handler", func() {
 			result := (&handler{}).Handle(context.TODO(), admission.Request{})
 			Ω(result.Allowed).Should(BeFalse())
 		})
+		It("should mutate", func() {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "bar",
+				},
+			}
+			raw, err := json.Marshal(pod)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			h := handler{
+				Handler: &MutateFunc{
+					Func: func(ctx context.Context, request admission.Request) admission.Response {
+						return admission.Allowed("")
+					},
+				},
+				Object: &corev1.Pod{},
+			}
+			err = h.InjectDecoder(decoder)
+			Ω(err).ShouldNot(HaveOccurred())
+			result := h.Handle(context.TODO(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Object: runtime.RawExtension{
+						Raw: raw,
+					},
+					Operation: admissionv1.Create,
+				},
+			})
+			Ω(result.Allowed).Should(BeTrue())
+			result = h.Handle(context.TODO(), admission.Request{})
+			Ω(result.Allowed).Should(BeTrue())
+		})
 		It("should validate", func() {
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
