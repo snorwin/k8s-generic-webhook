@@ -40,21 +40,25 @@ func (blder *Builder) For(apiType runtime.Object) *Builder {
 	return blder
 }
 
+// WithMutatePath overrides the mutate path of the webhook
 func (blder *Builder) WithMutatePath(path string) *Builder {
 	blder.pathMutate = path
 	return blder
 }
 
+// WithValidatePath overrides the validate path of the webhook
 func (blder *Builder) WithValidatePath(path string) *Builder {
 	blder.pathValidate = path
 	return blder
 }
 
+// WithMutatePrefix sets a custom prefix for the mutate path of the webhook, default is '/mutate-'
 func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
 }
 
+// WithValidatePrefix sets a custom prefix for the mutate path of the webhook, default is '/validate-'
 func (blder *Builder) WithValidatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
@@ -171,6 +175,7 @@ func generatePath(override string, prefix string, gvk schema.GroupVersionKind) s
 	if override != "" {
 		return override
 	}
+
 	return prefix + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
 		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }
