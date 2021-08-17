@@ -59,8 +59,8 @@ if err = (&pod.Webhook{}).SetupWebhookWithManager(mgr); err != nil {
 
 ## Examples
 ### Mutating admission webhook using `MutateObjectFunc`
-The `MutateObjectFunc` creates the JSON patches for admission response automatically in order to simplify the mutation of `runtime.Object`. 
-The example shows how the functional `MutateObjectFunc` interface can be used to mutate a `Pod`.
+The `MutateObjectFunc` creates the JSON patches for the admission response automatically in order to simplify the mutation of `runtime.Object`. 
+The example shows how the functional interface `MutateObjectFunc` can be used to mutate a `Pod`.
 ```go
 package pod
 
