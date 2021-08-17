@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -32,7 +33,7 @@ var _ = Describe("Mutating Webhook", func() {
 	})
 	Context("MutateObjectFunc", func() {
 		var (
-			n *corev1.Namespace
+			n   *corev1.Namespace
 			raw []byte
 		)
 		BeforeEach(func() {
