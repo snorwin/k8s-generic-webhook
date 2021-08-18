@@ -95,6 +95,7 @@ func (h *handler) InjectDecoder(decoder *admission.Decoder) error {
 
 // InjectClient implements the inject.Client interface.
 func (h *handler) InjectClient(client client.Client) error {
+	// pass client to the underlying handler
 	if injector, ok := h.Handler.(inject.Client); ok {
 		return injector.InjectClient(client)
 	}
