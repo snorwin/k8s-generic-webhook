@@ -12,8 +12,8 @@ import (
 
 // Converter specifies the interface for a conversion webhook.
 type Converter interface {
-	// Convert yields a review to a conversion ConvertionRequest.
-	Convert(context.Context, v1beta1.ConversionReview) v1beta1.ConversionResponse
+	// Convert yields a request to a conversion ConvertionRequest.
+	Convert(context.Context, v1beta1.ConversionRequest) v1beta1.ConversionResponse
 }
 
 // ConversionWebhook is a generic conversion webhook.
