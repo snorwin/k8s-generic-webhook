@@ -15,13 +15,15 @@ Furthermore, it provides full access to the `AdmissionReview` request and decode
 1. Initialize a new manager using the [operator-sdk](https://sdk.operatorframework.io/).
 2. Create a pkg (e.g. `webhooks/pod`) and implement your webhook logic by embedding either the `ValidatingWebhook` or the `MuatatingWebhook`.
 
+#### Example `ValidatingWebhook`
 ```go
 package pod
 
 import (
 	"context"
-	
+
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -39,26 +41,17 @@ func (w *Webhook) SetupWebhookWithManager(mgr manager.Manager) error {
 		Complete(w)
 }
 
-func (w *Webhook) ValidateCreate(ctx context.Context, req admission.Request) admission.Response {
+func (w *Webhook) ValidateCreate(ctx context.Context, request admission.Request, object runtime.Object) admission.Response {
 	_ = log.FromContext(ctx)
-	
-	pod := req.Object.Object.(*corev1.Pod)
+
+	pod := object.(*corev1.Pod)
 	// TODO add your programmatic validation logic here
-	
+
 	return admission.Allowed("")
 }
 ```
 
-3. Add the following snippet to `main()` in `main.go` in order to register the webhook in the manager.
-```go
-if err = (&pod.Webhook{}).SetupWebhookWithManager(mgr); err != nil {
-    setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
-    os.Exit(1)
-}
-```
-
-## Examples
-### Object mutating admission webhook for `Pod`
+#### Example `MutatingWebhook`
 ```go
 package pod
 
@@ -76,7 +69,7 @@ import (
 )
 
 type Webhook struct {
-	webhook.MutatingObjectWebhook
+	webhook.MutatingWebhook
 }
 
 func (w *Webhook) SetupWebhookWithManager(mgr manager.Manager) error {
@@ -85,13 +78,20 @@ func (w *Webhook) SetupWebhookWithManager(mgr manager.Manager) error {
 		Complete(&w)
 }
 
-func (w *Webhook) Mutate(ctx context.Context, request admission.Request, object runtime.Object) error {
+func (w *Webhook) Mutate(ctx context.Context, request admission.Request, object runtime.Object) admission.Response {
 	_ = log.FromContext(ctx)
 
 	pod := object.(*corev1.Pod)
 	// TODO add your programmatic mutation logic here
-	object = pod
 
-	return nil
+	return webhook.PatchResponseFromObject(request, pod)
+}
+```
+
+3. Add the following snippet to `main()` in `main.go` in order to register the webhook in the manager.
+```go
+if err = (&pod.Webhook{}).SetupWebhookWithManager(mgr); err != nil {
+    setupLog.Error(err, "unable to create webhook", "webhook", "Pod")
+    os.Exit(1)
 }
 ```

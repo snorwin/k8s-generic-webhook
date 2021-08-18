@@ -45,39 +45,11 @@ var _ = Describe("Handler", func() {
 
 			h := handler{
 				Handler: &MutateFunc{
-					Func: func(ctx context.Context, request admission.Request) admission.Response {
+					Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 						return admission.Allowed("")
 					},
 				},
 				Object: &corev1.Pod{},
-			}
-			err = h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
-			result := h.Handle(context.TODO(), admission.Request{
-				AdmissionRequest: admissionv1.AdmissionRequest{
-					Object: runtime.RawExtension{
-						Raw: raw,
-					},
-					Operation: admissionv1.Create,
-				},
-			})
-			Ω(result.Allowed).Should(BeTrue())
-			result = h.Handle(context.TODO(), admission.Request{})
-			Ω(result.Allowed).Should(BeTrue())
-		})
-		It("should mutate object", func() {
-			pod := &corev1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: "bar",
-				},
-			}
-			raw, err := json.Marshal(pod)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			h := handler{
-				Handler: wrapAsMutator(&MutatingObjectWebhook{}),
-				Object:  &corev1.Pod{},
 			}
 			err = h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -105,13 +77,13 @@ var _ = Describe("Handler", func() {
 
 			h := handler{
 				Handler: &ValidateFuncs{
-					CreateFunc: func(ctx context.Context, request admission.Request) admission.Response {
+					CreateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 						return admission.Allowed("")
 					},
-					UpdateFunc: func(ctx context.Context, request admission.Request) admission.Response {
+					UpdateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object, _ runtime.Object) admission.Response {
 						return admission.Denied("")
 					},
-					DeleteFunc: func(ctx context.Context, request admission.Request) admission.Response {
+					DeleteFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 						return admission.Denied("")
 					},
 				},
@@ -164,13 +136,8 @@ var _ = Describe("Handler", func() {
 
 			h := handler{
 				Handler: &MutateFunc{
-					Func: func(ctx context.Context, request admission.Request) admission.Response {
-						if len(request.Object.Raw) > 0 {
-							Ω(request.Object.Object).Should(Equal(pod))
-						}
-						if len(request.OldObject.Raw) > 0 {
-							Ω(request.OldObject.Object).Should(Equal(pod))
-						}
+					Func: func(_ context.Context, request admission.Request, object runtime.Object) admission.Response {
+						Ω(object).Should(Equal(pod))
 						return admission.Allowed("")
 					},
 				},
@@ -203,7 +170,7 @@ var _ = Describe("Handler", func() {
 		It("should not decode invalid object", func() {
 			h := handler{
 				Handler: &MutateFunc{
-					Func: func(ctx context.Context, request admission.Request) admission.Response {
+					Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 						return admission.Allowed("")
 					},
 				},

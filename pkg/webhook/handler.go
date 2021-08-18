@@ -61,18 +61,18 @@ func (h *handler) Handle(ctx context.Context, req admission.Request) admission.R
 	if validator, ok := h.Handler.(Validator); ok {
 		switch req.Operation {
 		case admissionv1.Create:
-			return validator.ValidateCreate(ctx, req)
+			return validator.ValidateCreate(ctx, req, req.Object.Object)
 		case admissionv1.Update:
-			return validator.ValidateUpdate(ctx, req)
+			return validator.ValidateUpdate(ctx, req, req.Object.Object, req.OldObject.Object)
 		case admissionv1.Delete:
-			return validator.ValidateDelete(ctx, req)
+			return validator.ValidateDelete(ctx, req, req.OldObject.Object)
 		}
 	}
 
 	// invoke mutator
 	if mutator, ok := h.Handler.(Mutator); ok {
 		if req.Object.Object != nil {
-			return mutator.Mutate(ctx, req)
+			return mutator.Mutate(ctx, req, req.Object.Object)
 		} else {
 			return admission.Allowed("")
 		}
