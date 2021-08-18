@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	admissionv1 "k8s.io/api/admission/v1"
@@ -72,7 +73,18 @@ func (h *handler) Handle(ctx context.Context, req admission.Request) admission.R
 	// invoke mutator
 	if mutator, ok := h.Handler.(Mutator); ok {
 		if req.Object.Object != nil {
-			return mutator.Mutate(ctx, req, req.Object.Object)
+			resp := mutator.Mutate(ctx, req, req.Object.Object)
+			if resp.Allowed && resp.Patches == nil {
+				// generate patches
+				marshalled, err := json.Marshal(req.Object.Object)
+				if err != nil {
+					return admission.Errored(http.StatusInternalServerError, err)
+				}
+
+				return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
+			}
+
+			return resp
 		} else {
 			return admission.Allowed("")
 		}

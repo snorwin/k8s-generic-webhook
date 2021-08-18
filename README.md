@@ -84,7 +84,7 @@ func (w *Webhook) Mutate(ctx context.Context, request admission.Request, object 
 	pod := object.(*corev1.Pod)
 	// TODO add your programmatic mutation logic here
 
-	return webhook.PatchResponseFromObject(request, pod)
+	return admission.Allowed("")
 }
 ```
 

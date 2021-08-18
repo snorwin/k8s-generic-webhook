@@ -2,9 +2,6 @@ package webhook
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -43,13 +40,4 @@ func (m *MutateFunc) Mutate(ctx context.Context, req admission.Request, obj runt
 	}
 
 	return m.MutatingWebhook.Mutate(ctx, req, obj)
-}
-
-func PatchResponseFromObject(req admission.Request, obj runtime.Object) admission.Response {
-	marshalled, err := json.Marshal(obj)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
 }

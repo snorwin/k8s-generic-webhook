@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +34,7 @@ var _ = Describe("Handler", func() {
 			result := (&handler{}).Handle(context.TODO(), admission.Request{})
 			Ω(result.Allowed).Should(BeFalse())
 		})
-		It("should mutate", func() {
+		It("should mutate and generate patches", func() {
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
@@ -45,7 +46,9 @@ var _ = Describe("Handler", func() {
 
 			h := handler{
 				Handler: &MutateFunc{
-					Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
+					Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
+						pod := obj.(*corev1.Pod)
+						pod.Name = "bar"
 						return admission.Allowed("")
 					},
 				},
@@ -62,8 +65,47 @@ var _ = Describe("Handler", func() {
 				},
 			})
 			Ω(result.Allowed).Should(BeTrue())
+			Ω(result.Patches).ShouldNot(BeEmpty())
 			result = h.Handle(context.TODO(), admission.Request{})
 			Ω(result.Allowed).Should(BeTrue())
+		})
+		It("should mutate", func() {
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foo",
+					Namespace: "bar",
+				},
+			}
+			raw, err := json.Marshal(pod)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			h := handler{
+				Handler: &MutateFunc{
+					Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
+						pod := obj.(*corev1.Pod)
+						pod.Name = "bar"
+						return admission.Response{
+							AdmissionResponse: admissionv1.AdmissionResponse{
+								Allowed: true,
+							},
+							Patches: []jsonpatch.JsonPatchOperation{},
+						}
+					},
+				},
+				Object: &corev1.Pod{},
+			}
+			err = h.InjectDecoder(decoder)
+			Ω(err).ShouldNot(HaveOccurred())
+			result := h.Handle(context.TODO(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Object: runtime.RawExtension{
+						Raw: raw,
+					},
+					Operation: admissionv1.Create,
+				},
+			})
+			Ω(result.Allowed).Should(BeTrue())
+			Ω(result.Patches).Should(BeEmpty())
 		})
 		It("should validate", func() {
 			pod := &corev1.Pod{
