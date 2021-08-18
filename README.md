@@ -58,7 +58,7 @@ if err = (&pod.Webhook{}).SetupWebhookWithManager(mgr); err != nil {
 ```
 
 ## Examples
-### Object mutating admission webhook for a `Pod`
+### Object mutating admission webhook for `Pod`
 ```go
 package pod
 
