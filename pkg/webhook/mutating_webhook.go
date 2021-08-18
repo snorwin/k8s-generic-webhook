@@ -2,10 +2,6 @@ package webhook
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -43,35 +39,4 @@ func (m *MutateFunc) Mutate(ctx context.Context, req admission.Request) admissio
 	}
 
 	return m.MutatingWebhook.Mutate(ctx, req)
-}
-
-// MutateObjectFunc is a functional interface for an object mutating admission webhook.
-type MutateObjectFunc struct {
-	MutatingWebhook
-
-	Func func(context.Context, admission.Request, runtime.Object) error
-}
-
-// Mutate implements the Mutator interface by calling the Func using the request's runtime.Object.
-func (m *MutateObjectFunc) Mutate(ctx context.Context, req admission.Request) admission.Response {
-	if m.Func != nil {
-		return MutateObjectByFunc(ctx, req, m.Func)
-	}
-
-	return m.MutatingWebhook.Mutate(ctx, req)
-}
-
-func MutateObjectByFunc(ctx context.Context, req admission.Request, f func(context.Context, admission.Request, runtime.Object) error) admission.Response {
-	obj := req.Object.Object
-	err := f(ctx, req, obj)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	marshalled, err := json.Marshal(obj)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-
-	return admission.PatchResponseFromRaw(req.Object.Raw, marshalled)
 }

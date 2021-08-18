@@ -80,7 +80,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
 	}
 
-	if validator, ok := i.(Validator); ok {
+	if validator := blder.asValidator(i); validator != nil {
 		w, err := blder.createAdmissionWebhook(&handler{Handler: validator, Object: blder.apiType})
 		if err != nil {
 			return err
@@ -91,7 +91,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		}
 	}
 
-	if mutator, ok := i.(Mutator); ok {
+	if mutator := blder.asMutator(i); mutator != nil {
 		w, err := blder.createAdmissionWebhook(&handler{Handler: mutator, Object: blder.apiType})
 		if err != nil {
 			return err
@@ -100,6 +100,25 @@ func (blder *Builder) Complete(i interface{}) error {
 		if err := blder.registerMutatingWebhook(w); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (blder *Builder) asValidator(i interface{}) Validator {
+	if validator, ok := i.(Validator); ok {
+		return validator
+	}
+
+	return nil
+}
+
+func (blder *Builder) asMutator(i interface{}) Mutator {
+	if mutator, ok := i.(Mutator); ok {
+		return mutator
+	}
+	if mutator, ok := i.(ObjectMutator); ok {
+		return wrapAsMutator(mutator)
 	}
 
 	return nil
