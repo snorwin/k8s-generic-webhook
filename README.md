@@ -74,7 +74,7 @@ type Webhook struct {
 func (w *Webhook) SetupWebhookWithManager(mgr manager.Manager) error {
 	return webhook.NewGenericWebhookManagedBy(mgr).
 		For(&corev1.Pod{}).
-		Complete(&w)
+		Complete(w)
 }
 
 func (w *Webhook) Mutate(ctx context.Context, request admission.Request, object runtime.Object) admission.Response {
