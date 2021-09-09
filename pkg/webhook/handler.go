@@ -20,10 +20,26 @@ type Handler interface {
 	inject.Client
 }
 
+// withValidationHandler create a validation handler instance
+func withValidationHandler(validator Validator, object runtime.Object) Handler {
+	return &handler{validator: validator, injector: validator, Object: object}
+}
+
+// withMutationHandler create a mutation handler instance
+func withMutationHandler(mutator Mutator, object runtime.Object) Handler {
+	return &handler{mutator: mutator, injector: mutator, Object: object}
+}
+
 // handler is wrapper type for Validator and Mutator, implements the Handler interface.
 type handler struct {
-	Handler interface{}
-	Object  runtime.Object
+	// injector keep this reference for dependency injection
+	injector interface{}
+	// validator instance, should be nil if mutator is set
+	validator Validator
+	// mutator instance, should be nil if validator is set
+	mutator Mutator
+
+	Object runtime.Object
 
 	decoder *admission.Decoder
 }
@@ -59,21 +75,21 @@ func (h *handler) Handle(ctx context.Context, req admission.Request) admission.R
 	}
 
 	// invoke validator
-	if validator, ok := h.Handler.(Validator); ok {
+	if h.validator != nil {
 		switch req.Operation {
 		case admissionv1.Create:
-			return validator.ValidateCreate(ctx, req, req.Object.Object)
+			return h.validator.ValidateCreate(ctx, req, req.Object.Object)
 		case admissionv1.Update:
-			return validator.ValidateUpdate(ctx, req, req.Object.Object, req.OldObject.Object)
+			return h.validator.ValidateUpdate(ctx, req, req.Object.Object, req.OldObject.Object)
 		case admissionv1.Delete:
-			return validator.ValidateDelete(ctx, req, req.OldObject.Object)
+			return h.validator.ValidateDelete(ctx, req, req.OldObject.Object)
 		}
 	}
 
 	// invoke mutator
-	if mutator, ok := h.Handler.(Mutator); ok {
+	if h.mutator != nil {
 		if req.Object.Object != nil {
-			resp := mutator.Mutate(ctx, req, req.Object.Object)
+			resp := h.mutator.Mutate(ctx, req, req.Object.Object)
 			if resp.Allowed && resp.Patches == nil {
 				// generate patches
 				marshalled, err := json.Marshal(req.Object.Object)
@@ -98,7 +114,7 @@ func (h *handler) InjectDecoder(decoder *admission.Decoder) error {
 	h.decoder = decoder
 
 	// pass decoder to the underlying handler
-	if injector, ok := h.Handler.(admission.DecoderInjector); ok {
+	if injector, ok := h.injector.(admission.DecoderInjector); ok {
 		return injector.InjectDecoder(decoder)
 	}
 
@@ -108,7 +124,7 @@ func (h *handler) InjectDecoder(decoder *admission.Decoder) error {
 // InjectClient implements the inject.Client interface.
 func (h *handler) InjectClient(client client.Client) error {
 	// pass client to the underlying handler
-	if injector, ok := h.Handler.(inject.Client); ok {
+	if injector, ok := h.injector.(inject.Client); ok {
 		return injector.InjectClient(client)
 	}
 

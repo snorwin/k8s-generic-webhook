@@ -44,16 +44,13 @@ var _ = Describe("Handler", func() {
 			raw, err := json.Marshal(pod)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			h := handler{
-				Handler: &MutateFunc{
-					Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
-						pod := obj.(*corev1.Pod)
-						pod.Name = "bar"
-						return admission.Allowed("")
-					},
+			h := withMutationHandler(&MutateFunc{
+				Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
+					pod := obj.(*corev1.Pod)
+					pod.Name = "bar"
+					return admission.Allowed("")
 				},
-				Object: &corev1.Pod{},
-			}
+			}, &corev1.Pod{})
 			err = h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
 			result := h.Handle(context.TODO(), admission.Request{
@@ -79,21 +76,19 @@ var _ = Describe("Handler", func() {
 			raw, err := json.Marshal(pod)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			h := handler{
-				Handler: &MutateFunc{
-					Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
-						pod := obj.(*corev1.Pod)
-						pod.Name = "bar"
-						return admission.Response{
-							AdmissionResponse: admissionv1.AdmissionResponse{
-								Allowed: true,
-							},
-							Patches: []jsonpatch.JsonPatchOperation{},
-						}
-					},
+			h := withMutationHandler(&MutateFunc{
+				Func: func(_ context.Context, _ admission.Request, obj runtime.Object) admission.Response {
+					pod := obj.(*corev1.Pod)
+					pod.Name = "bar"
+					return admission.Response{
+						AdmissionResponse: admissionv1.AdmissionResponse{
+							Allowed: true,
+						},
+						Patches: []jsonpatch.JsonPatchOperation{},
+					}
 				},
-				Object: &corev1.Pod{},
-			}
+			}, &corev1.Pod{})
+
 			err = h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
 			result := h.Handle(context.TODO(), admission.Request{
@@ -117,20 +112,18 @@ var _ = Describe("Handler", func() {
 			raw, err := json.Marshal(pod)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			h := handler{
-				Handler: &ValidateFuncs{
-					CreateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
-						return admission.Allowed("")
-					},
-					UpdateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object, _ runtime.Object) admission.Response {
-						return admission.Denied("")
-					},
-					DeleteFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
-						return admission.Denied("")
-					},
+			h := withValidationHandler(&ValidateFuncs{
+				CreateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
+					return admission.Allowed("")
 				},
-				Object: &corev1.Pod{},
-			}
+				UpdateFunc: func(_ context.Context, _ admission.Request, _ runtime.Object, _ runtime.Object) admission.Response {
+					return admission.Denied("")
+				},
+				DeleteFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
+					return admission.Denied("")
+				},
+			}, &corev1.Pod{})
+
 			err = h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -176,15 +169,13 @@ var _ = Describe("Handler", func() {
 			raw, err := json.Marshal(pod)
 			Ω(err).ShouldNot(HaveOccurred())
 
-			h := handler{
-				Handler: &MutateFunc{
-					Func: func(_ context.Context, request admission.Request, object runtime.Object) admission.Response {
-						Ω(object).Should(Equal(pod))
-						return admission.Allowed("")
-					},
+			h := withMutationHandler(&MutateFunc{
+				Func: func(_ context.Context, request admission.Request, object runtime.Object) admission.Response {
+					Ω(object).Should(Equal(pod))
+					return admission.Allowed("")
 				},
-				Object: &corev1.Pod{},
-			}
+			}, &corev1.Pod{})
+
 			err = h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -210,14 +201,11 @@ var _ = Describe("Handler", func() {
 			Ω(result.Allowed).Should(BeTrue())
 		})
 		It("should not decode invalid object", func() {
-			h := handler{
-				Handler: &MutateFunc{
-					Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
-						return admission.Allowed("")
-					},
+			h := withMutationHandler(&MutateFunc{
+				Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
+					return admission.Allowed("")
 				},
-				Object: &corev1.Pod{},
-			}
+			}, &corev1.Pod{})
 			err := h.InjectDecoder(decoder)
 			Ω(err).ShouldNot(HaveOccurred())
 
@@ -249,12 +237,12 @@ var _ = Describe("Handler", func() {
 		})
 		It("should pass decoder to validating webhook", func() {
 			webhook := ValidatingWebhook{}
-			Ω((&handler{Handler: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
+			Ω((&handler{injector: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
 			Ω(webhook.Decoder).Should(Equal(decoder))
 		})
 		It("should pass decoder to mutating webhook", func() {
 			webhook := MutatingWebhook{}
-			Ω((&handler{Handler: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
+			Ω((&handler{injector: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
 			Ω(webhook.Decoder).Should(Equal(decoder))
 		})
 		It("should never fail if handler not set", func() {
@@ -270,12 +258,12 @@ var _ = Describe("Handler", func() {
 		})
 		It("should pass client to validating webhook", func() {
 			webhook := ValidatingWebhook{}
-			Ω((&handler{Handler: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
+			Ω((&handler{injector: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
 			Ω(webhook.Client).Should(Equal(client))
 		})
 		It("should pass client to mutating webhook", func() {
 			webhook := MutatingWebhook{}
-			Ω((&handler{Handler: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
+			Ω((&handler{injector: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
 			Ω(webhook.Client).Should(Equal(client))
 		})
 		It("should never fail if handler not set", func() {
