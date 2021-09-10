@@ -81,7 +81,7 @@ func (blder *Builder) Complete(i interface{}) error {
 	}
 
 	if validator, ok := i.(Validator); ok {
-		w, err := blder.createAdmissionWebhook(&handler{Handler: validator, Object: blder.apiType})
+		w, err := blder.createAdmissionWebhook(withValidationHandler(validator, blder.apiType))
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func (blder *Builder) Complete(i interface{}) error {
 	}
 
 	if mutator, ok := i.(Mutator); ok {
-		w, err := blder.createAdmissionWebhook(&handler{Handler: mutator, Object: blder.apiType})
+		w, err := blder.createAdmissionWebhook(withMutationHandler(mutator, blder.apiType))
 		if err != nil {
 			return err
 		}
