@@ -9,8 +9,8 @@ import (
 
 // Mutator specifies the interface for a generic mutating webhook.
 type Mutator interface {
-	// Mutate yields a response to an mutating AdmissionRequest.
-	Mutate(context.Context, admission.Request, runtime.Object) admission.Response
+	// Mutate yields a response to a mutating AdmissionRequest.
+	Mutate(ctx context.Context, req admission.Request, obj runtime.Object) admission.Response
 }
 
 // ensure MutatingWebhook implements Mutator

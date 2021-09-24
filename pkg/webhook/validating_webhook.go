@@ -9,12 +9,12 @@ import (
 
 // Validator specifies the interface for a validating webhook.
 type Validator interface {
-	// ValidateCreate yields a response to an validating AdmissionRequest with operation set to Create.
-	ValidateCreate(context.Context, admission.Request, runtime.Object) admission.Response
-	// ValidateUpdate yields a response to an validating AdmissionRequest with operation set to Update.
-	ValidateUpdate(context.Context, admission.Request, runtime.Object, runtime.Object) admission.Response
-	// ValidateDelete yields a response to an validating AdmissionRequest with operation set to Delete.
-	ValidateDelete(context.Context, admission.Request, runtime.Object) admission.Response
+	// ValidateCreate yields a response to a validating AdmissionRequest with operation set to Create.
+	ValidateCreate(ctx context.Context, req admission.Request, obj runtime.Object) admission.Response
+	// ValidateUpdate yields a response to a validating AdmissionRequest with operation set to Update.
+	ValidateUpdate(ctx context.Context, req admission.Request, obj runtime.Object, oldObj runtime.Object) admission.Response
+	// ValidateDelete yields a response to a validating AdmissionRequest with operation set to Delete.
+	ValidateDelete(ctx context.Context, req admission.Request, obj runtime.Object) admission.Response
 }
 
 // ensure ValidatingWebhook implements Validator
