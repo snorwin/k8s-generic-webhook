@@ -131,12 +131,15 @@ func (blder *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhoo
 }
 
 func (blder *Builder) registerValidatingWebhook(w *admission.Webhook) error {
-	gvk, err := apiutil.GVKForObject(blder.apiType, blder.mgr.GetScheme())
-	if err != nil {
-		return err
-	}
+	path := blder.pathValidate
+	if strings.TrimSpace(path) == "" {
+		gvk, err := apiutil.GVKForObject(blder.apiType, blder.mgr.GetScheme())
+		if err != nil {
+			return err
+		}
 
-	path := generatePath(blder.pathValidate, blder.prefixValidate, gvk)
+		path = generatePath(blder.prefixValidate, gvk)
+	}
 	if !isAlreadyHandled(blder.mgr, path) {
 		blder.mgr.GetWebhookServer().Register(path, w)
 	}
@@ -145,12 +148,15 @@ func (blder *Builder) registerValidatingWebhook(w *admission.Webhook) error {
 }
 
 func (blder *Builder) registerMutatingWebhook(w *admission.Webhook) error {
-	gvk, err := apiutil.GVKForObject(blder.apiType, blder.mgr.GetScheme())
-	if err != nil {
-		return err
-	}
+	path := blder.pathMutate
+	if strings.TrimSpace(path) == "" {
+		gvk, err := apiutil.GVKForObject(blder.apiType, blder.mgr.GetScheme())
+		if err != nil {
+			return err
+		}
 
-	path := generatePath(blder.pathMutate, blder.prefixMutate, gvk)
+		path = generatePath(blder.prefixMutate, gvk)
+	}
 	if !isAlreadyHandled(blder.mgr, path) {
 		blder.mgr.GetWebhookServer().Register(path, w)
 	}
@@ -171,11 +177,7 @@ func isAlreadyHandled(mgr ctrl.Manager, path string) bool {
 	return false
 }
 
-func generatePath(override string, prefix string, gvk schema.GroupVersionKind) string {
-	if override != "" {
-		return override
-	}
-
+func generatePath(prefix string, gvk schema.GroupVersionKind) string {
 	return prefix + strings.Replace(gvk.Group, ".", "-", -1) + "-" +
 		gvk.Version + "-" + strings.ToLower(gvk.Kind)
 }
