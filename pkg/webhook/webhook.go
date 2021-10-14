@@ -108,7 +108,6 @@ func (blder *Builder) Complete(i interface{}) error {
 func (blder *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhook, error) {
 	w := &admission.Webhook{
 		Handler:         handler,
-		WithContextFunc: nil,
 	}
 
 	// inject scheme for decoder
