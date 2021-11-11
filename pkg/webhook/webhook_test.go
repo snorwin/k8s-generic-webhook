@@ -92,11 +92,11 @@ var _ = Describe("Webhook", func() {
 				Complete(&webhook.ValidatingWebhook{})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
-		It("should not fail if interface doesn't match", func() {
+		It("should fail if interface doesn't match", func() {
 			err := webhook.NewGenericWebhookManagedBy(mgr).
 				For(&corev1.Pod{}).
 				Complete(struct{}{})
-			Ω(err).ShouldNot(HaveOccurred())
+			Ω(err).Should(HaveOccurred())
 		})
 		It("should fail if api type isn't specified", func() {
 			err := webhook.NewGenericWebhookManagedBy(mgr).
