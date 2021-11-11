@@ -58,7 +58,7 @@ func (blder *Builder) WithMutatePrefix(prefix string) *Builder {
 	return blder
 }
 
-// WithValidatePrefix sets a custom prefix for the mutate path of the webhook, default is '/validate-'
+// WithValidatePrefix sets a custom prefix for the validate path of the webhook, default is '/validate-'
 func (blder *Builder) WithValidatePrefix(prefix string) *Builder {
 	blder.prefixMutate = prefix
 	return blder
@@ -80,6 +80,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
 	}
 
+	isWebhook := false
 	if validator, ok := i.(Validator); ok {
 		w, err := blder.createAdmissionWebhook(withValidationHandler(validator, blder.apiType))
 		if err != nil {
@@ -89,6 +90,7 @@ func (blder *Builder) Complete(i interface{}) error {
 		if err := blder.registerValidatingWebhook(w); err != nil {
 			return err
 		}
+		isWebhook = true
 	}
 
 	if mutator, ok := i.(Mutator); ok {
@@ -100,6 +102,11 @@ func (blder *Builder) Complete(i interface{}) error {
 		if err := blder.registerMutatingWebhook(w); err != nil {
 			return err
 		}
+		isWebhook = true
+	}
+
+	if !isWebhook {
+		return fmt.Errorf("webhook instance %v does implement neither Mutator nor Validator interface", i)
 	}
 
 	return nil
@@ -107,7 +114,7 @@ func (blder *Builder) Complete(i interface{}) error {
 
 func (blder *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhook, error) {
 	w := &admission.Webhook{
-		Handler:         handler,
+		Handler: handler,
 	}
 
 	// inject scheme for decoder
