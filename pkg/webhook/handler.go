@@ -7,33 +7,22 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// Handler is an interface that combines various interfaces.
-type Handler interface {
-	admission.Handler
-	admission.DecoderInjector
-	inject.Client
-}
-
 // withValidationHandler create a validation handler instance
-func withValidationHandler(validator Validator, object runtime.Object) Handler {
-	return &handler{validator: validator, injector: validator, Object: object}
+func withValidationHandler(validator Validator, object runtime.Object, decoder *admission.Decoder) admission.Handler {
+	return &handler{validator: validator, Object: object, decoder: decoder}
 }
 
 // withMutationHandler create a mutation handler instance
-func withMutationHandler(mutator Mutator, object runtime.Object) Handler {
-	return &handler{mutator: mutator, injector: mutator, Object: object}
+func withMutationHandler(mutator Mutator, object runtime.Object, decoder *admission.Decoder) admission.Handler {
+	return &handler{mutator: mutator, Object: object, decoder: decoder}
 }
 
 // handler is wrapper type for Validator and Mutator, implements the Handler interface.
 type handler struct {
-	// injector keep this reference for dependency injection
-	injector interface{}
 	// validator instance, should be nil if mutator is set
 	validator Validator
 	// mutator instance, should be nil if validator is set
@@ -107,26 +96,4 @@ func (h *handler) Handle(ctx context.Context, req admission.Request) admission.R
 	}
 
 	return admission.Denied("")
-}
-
-// InjectDecoder implements the admission.DecoderInjector interface.
-func (h *handler) InjectDecoder(decoder *admission.Decoder) error {
-	h.decoder = decoder
-
-	// pass decoder to the underlying handler
-	if injector, ok := h.injector.(admission.DecoderInjector); ok {
-		return injector.InjectDecoder(decoder)
-	}
-
-	return nil
-}
-
-// InjectClient implements the inject.Client interface.
-func (h *handler) InjectClient(client client.Client) error {
-	// pass client to the underlying handler
-	if injector, ok := h.injector.(inject.Client); ok {
-		return injector.InjectClient(client)
-	}
-
-	return nil
 }
