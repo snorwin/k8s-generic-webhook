@@ -21,7 +21,7 @@ var _ = Describe("Webhook", func() {
 			mock *gomock.Controller
 			mgr  *manager.MockManager
 
-			server *webhook2.Server
+			server webhook2.Server
 		)
 		BeforeEach(func() {
 			mock = gomock.NewController(GinkgoT())
@@ -40,7 +40,7 @@ var _ = Describe("Webhook", func() {
 				Return(fake.NewClientBuilder().Build()).
 				AnyTimes()
 
-			server = &webhook2.Server{}
+			server = &webhook2.DefaultServer{}
 			mgr.EXPECT().
 				GetWebhookServer().
 				Return(server).AnyTimes()

@@ -12,8 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -26,7 +24,7 @@ var _ = Describe("Handler", func() {
 			scheme := runtime.NewScheme()
 			err := corev1.AddToScheme(scheme)
 			Ω(err).ShouldNot(HaveOccurred())
-			decoder, err = admission.NewDecoder(scheme)
+			decoder = admission.NewDecoder(scheme)
 			Ω(err).ShouldNot(HaveOccurred())
 
 		})
@@ -50,9 +48,7 @@ var _ = Describe("Handler", func() {
 					pod.Name = "bar"
 					return admission.Allowed("")
 				},
-			}, &corev1.Pod{})
-			err = h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
+			}, &corev1.Pod{}, decoder)
 			result := h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
 					Object: runtime.RawExtension{
@@ -87,10 +83,7 @@ var _ = Describe("Handler", func() {
 						Patches: []jsonpatch.JsonPatchOperation{},
 					}
 				},
-			}, &corev1.Pod{})
-
-			err = h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
+			}, &corev1.Pod{}, decoder)
 			result := h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
 					Object: runtime.RawExtension{
@@ -122,10 +115,7 @@ var _ = Describe("Handler", func() {
 				DeleteFunc: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 					return admission.Denied("")
 				},
-			}, &corev1.Pod{})
-
-			err = h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
+			}, &corev1.Pod{}, decoder)
 
 			result := h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
@@ -174,10 +164,7 @@ var _ = Describe("Handler", func() {
 					Ω(object).Should(Equal(pod))
 					return admission.Allowed("")
 				},
-			}, &corev1.Pod{})
-
-			err = h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
+			}, &corev1.Pod{}, decoder)
 
 			result := h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
@@ -205,9 +192,7 @@ var _ = Describe("Handler", func() {
 				Func: func(_ context.Context, _ admission.Request, _ runtime.Object) admission.Response {
 					return admission.Allowed("")
 				},
-			}, &corev1.Pod{})
-			err := h.InjectDecoder(decoder)
-			Ω(err).ShouldNot(HaveOccurred())
+			}, &corev1.Pod{}, decoder)
 
 			result := h.Handle(context.TODO(), admission.Request{
 				AdmissionRequest: admissionv1.AdmissionRequest{
@@ -226,48 +211,6 @@ var _ = Describe("Handler", func() {
 				},
 			})
 			Ω(result.Allowed).Should(BeFalse())
-		})
-	})
-	Context("InjectDecoder", func() {
-		var (
-			decoder *admission.Decoder
-		)
-		BeforeEach(func() {
-			decoder = &admission.Decoder{}
-		})
-		It("should pass decoder to validating webhook", func() {
-			webhook := ValidatingWebhook{}
-			Ω((&handler{injector: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
-			Ω(webhook.Decoder).Should(Equal(decoder))
-		})
-		It("should pass decoder to mutating webhook", func() {
-			webhook := MutatingWebhook{}
-			Ω((&handler{injector: &webhook}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
-			Ω(webhook.Decoder).Should(Equal(decoder))
-		})
-		It("should never fail if handler not set", func() {
-			Ω((&handler{}).InjectDecoder(decoder)).ShouldNot(HaveOccurred())
-		})
-	})
-	Context("InjectClient", func() {
-		var (
-			client client.Client
-		)
-		BeforeEach(func() {
-			client = fake.NewClientBuilder().Build()
-		})
-		It("should pass client to validating webhook", func() {
-			webhook := ValidatingWebhook{}
-			Ω((&handler{injector: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
-			Ω(webhook.Client).Should(Equal(client))
-		})
-		It("should pass client to mutating webhook", func() {
-			webhook := MutatingWebhook{}
-			Ω((&handler{injector: &webhook}).InjectClient(client)).ShouldNot(HaveOccurred())
-			Ω(webhook.Client).Should(Equal(client))
-		})
-		It("should never fail if handler not set", func() {
-			Ω((&handler{}).InjectClient(client)).ShouldNot(HaveOccurred())
 		})
 	})
 })

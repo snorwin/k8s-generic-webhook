@@ -11,7 +11,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -80,11 +79,12 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("validating prefix %q must start with '/'", blder.prefixValidate)
 	}
 
+	decoder := admission.NewDecoder(blder.mgr.GetScheme())
+
 	isWebhook := false
 	if validator, ok := i.(Validator); ok {
-		w, err := blder.createAdmissionWebhook(withValidationHandler(validator, blder.apiType))
-		if err != nil {
-			return err
+		w := &admission.Webhook{
+			Handler: withValidationHandler(validator, blder.apiType, decoder),
 		}
 
 		if err := blder.registerValidatingWebhook(w); err != nil {
@@ -94,9 +94,8 @@ func (blder *Builder) Complete(i interface{}) error {
 	}
 
 	if mutator, ok := i.(Mutator); ok {
-		w, err := blder.createAdmissionWebhook(withMutationHandler(mutator, blder.apiType))
-		if err != nil {
-			return err
+		w := &admission.Webhook{
+			Handler: withMutationHandler(mutator, blder.apiType, decoder),
 		}
 
 		if err := blder.registerMutatingWebhook(w); err != nil {
@@ -109,31 +108,19 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("webhook instance %v does implement neither Mutator nor Validator interface", i)
 	}
 
-	return nil
-}
-
-func (blder *Builder) createAdmissionWebhook(handler Handler) (*admission.Webhook, error) {
-	w := &admission.Webhook{
-		Handler: handler,
-	}
-
-	// inject scheme for decoder
-	if err := w.InjectScheme(blder.mgr.GetScheme()); err != nil {
-		return nil, err
-	}
-
-	// inject client
-	if err := w.InjectFunc(func(i interface{}) error {
-		if injector, ok := i.(inject.Client); ok {
-			return injector.InjectClient(blder.mgr.GetClient())
+	if injector, ok := i.(InjectedClient); ok {
+		if err := injector.InjectClient(blder.mgr.GetClient()); err != nil {
+			return err
 		}
-
-		return nil
-	}); err != nil {
-		return nil, err
 	}
 
-	return w, nil
+	if injector, ok := i.(InjectedDecoder); ok {
+		if err := injector.InjectDecoder(decoder); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (blder *Builder) registerValidatingWebhook(w *admission.Webhook) error {
@@ -171,11 +158,11 @@ func (blder *Builder) registerMutatingWebhook(w *admission.Webhook) error {
 }
 
 func isAlreadyHandled(mgr ctrl.Manager, path string) bool {
-	if mgr.GetWebhookServer().WebhookMux == nil {
+	if mgr.GetWebhookServer().WebhookMux() == nil {
 		return false
 	}
 
-	h, p := mgr.GetWebhookServer().WebhookMux.Handler(&http.Request{URL: &url.URL{Path: path}})
+	h, p := mgr.GetWebhookServer().WebhookMux().Handler(&http.Request{URL: &url.URL{Path: path}})
 	if p == path && h != nil {
 		return true
 	}
