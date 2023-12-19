@@ -108,13 +108,13 @@ func (blder *Builder) Complete(i interface{}) error {
 		return fmt.Errorf("webhook instance %v does implement neither Mutator nor Validator interface", i)
 	}
 
-	if injector, ok := i.(InjectedClient); ok {
+	if injector, ok := i.(ClientInjector); ok {
 		if err := injector.InjectClient(blder.mgr.GetClient()); err != nil {
 			return err
 		}
 	}
 
-	if injector, ok := i.(InjectedDecoder); ok {
+	if injector, ok := i.(DecoderInjector); ok {
 		if err := injector.InjectDecoder(decoder); err != nil {
 			return err
 		}

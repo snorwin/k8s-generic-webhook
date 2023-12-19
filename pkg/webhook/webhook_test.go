@@ -70,6 +70,16 @@ var _ = Describe("Webhook", func() {
 				Complete(&webhook.ValidatingWebhook{})
 			Ω(err).ShouldNot(HaveOccurred())
 		})
+		It("should inject client and decoder", func() {
+			wh := &webhook.ValidatingWebhook{}
+			err := webhook.NewGenericWebhookManagedBy(mgr).
+				For(&corev1.Pod{}).
+				Complete(wh)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			Ω(wh.Client).ShouldNot(BeNil())
+			Ω(wh.Decoder).ShouldNot(BeNil())
+		})
 		It("should not fail if mutating webhook is already registered", func() {
 			err := webhook.NewGenericWebhookManagedBy(mgr).
 				For(&corev1.Pod{}).
