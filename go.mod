@@ -1,6 +1,8 @@
 module github.com/snorwin/k8s-generic-webhook
 
-go 1.18
+go 1.21
+
+toolchain go1.21.6
 
 require (
 	github.com/go-logr/logr v1.4.1
