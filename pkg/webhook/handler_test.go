@@ -18,7 +18,7 @@ import (
 var _ = Describe("Handler", func() {
 	Context("Handle", func() {
 		var (
-			decoder *admission.Decoder
+			decoder admission.Decoder
 		)
 		BeforeEach(func() {
 			scheme := runtime.NewScheme()

@@ -12,12 +12,12 @@ import (
 )
 
 // withValidationHandler create a validation handler instance
-func withValidationHandler(validator Validator, object runtime.Object, decoder *admission.Decoder) admission.Handler {
+func withValidationHandler(validator Validator, object runtime.Object, decoder admission.Decoder) admission.Handler {
 	return &handler{validator: validator, Object: object, decoder: decoder}
 }
 
 // withMutationHandler create a mutation handler instance
-func withMutationHandler(mutator Mutator, object runtime.Object, decoder *admission.Decoder) admission.Handler {
+func withMutationHandler(mutator Mutator, object runtime.Object, decoder admission.Decoder) admission.Handler {
 	return &handler{mutator: mutator, Object: object, decoder: decoder}
 }
 
@@ -30,7 +30,7 @@ type handler struct {
 
 	Object runtime.Object
 
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // Handle implements the admission.Handler interface.
