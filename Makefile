@@ -24,5 +24,5 @@ mocks: mockgen
 
 mockgen:
 ifeq (, $(shell which mockgen))
- $(shell go install github.com/golang/mock/mockgen@v1.6.0)
+ $(shell go install go.uber.org/mock/mockgen@v0.4.0)
 endif

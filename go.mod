@@ -1,13 +1,14 @@
 module github.com/snorwin/k8s-generic-webhook
 
-go 1.21
+go 1.22.0
+
 toolchain go1.22.2
 
 require (
 	github.com/go-logr/logr v1.4.1
-	github.com/golang/mock v1.6.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.33.1
+	go.uber.org/mock v0.4.0
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	k8s.io/api v0.30.0
 	k8s.io/apimachinery v0.30.0
