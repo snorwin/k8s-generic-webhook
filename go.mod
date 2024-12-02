@@ -7,7 +7,7 @@ toolchain go1.22.2
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/gomega v1.36.0
 	go.uber.org/mock v0.5.0
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	k8s.io/api v0.31.0
