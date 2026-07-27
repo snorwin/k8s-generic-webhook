@@ -3,7 +3,7 @@ module github.com/snorwin/k8s-generic-webhook
 go 1.25.0
 
 require (
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.42.1
 	go.uber.org/mock v0.6.0
